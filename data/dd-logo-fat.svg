@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   viewBox="0 0 297 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (e7c3feb1, 2024-10-09)"
+   sodipodi:docname="dagaz-logo-fat.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.32"
+     inkscape:cx="309.375"
+     inkscape:cy="789.0625"
+     inkscape:window-width="1520"
+     inkscape:window-height="932"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Background"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <circle
+       style="fill:#d40000;stroke-width:0.352445"
+       id="path1"
+       cx="148.5"
+       cy="148.5"
+       r="145.93423" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer6"
+     inkscape:label="Dagaz Fat"
+     transform="matrix(11.225387,0,0,11.225387,-776.35841,-2196.0706)"
+     style="display:inline;fill:#ffffff">
+    <path
+       d="m 90.961031,200.28959 -8.571104,6.87747 -8.571177,-6.87747 v 17.14728 l 8.571177,-6.87755 8.571104,6.87755 z m -6.457303,8.5736 3.811469,-3.05829 v 6.11665 z m -8.039144,-3.05829 3.81147,3.05829 -3.81147,3.05836 z"
+       id="path1-9"
+       style="fill:#ffffff;stroke-width:0.264583" />
+  </g>
+</svg>

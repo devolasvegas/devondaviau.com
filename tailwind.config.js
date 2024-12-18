@@ -22,11 +22,13 @@ module.exports = {
         14: '3.5rem',
       },
       fontFamily: {
-        sans: ['var(--font-space-grotesk)', ...fontFamily.sans],
+        sans: ['var(--font-beiruti)', ...fontFamily.sans],
+        serif: ['var(--font-space-grotesk)', ...fontFamily.serif],
       },
       colors: {
         primary: colors.pink,
         gray: colors.gray,
+        squidInkPowder: '#000d30',
       },
       zIndex: {
         60: '60',

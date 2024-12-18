@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   viewBox="0 0 297 297"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4 (e7c3feb1, 2024-10-09)"
+   sodipodi:docname="dagas-logo-fat-positive.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.32"
+     inkscape:cx="310.9375"
+     inkscape:cy="789.0625"
+     inkscape:window-width="1584"
+     inkscape:window-height="932"
+     inkscape:window-x="0"
+     inkscape:window-y="25"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="svg1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Background"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <circle
+       style="fill:#d40000;stroke-width:0.352445"
+       id="path1"
+       cx="148.5"
+       cy="148.5"
+       r="145.93423" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="Inner Circle"
+     style="display:inline;fill:#ffffff;fill-opacity:1">
+    <circle
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.292405;stroke-opacity:1"
+       id="path2"
+       cx="148.5"
+       cy="148.5"
+       r="138.89233" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="Dagaz Fat"
+     style="display:inline"
+     transform="matrix(1.0266977,0,0,1.0266977,-3.9646032,-3.9646032)">
+    <path
+       d="M 241.38249,55.590422 148.50043,130.11919 55.617514,55.590422 V 241.40958 l 92.882916,-74.52964 92.88206,74.52964 z m -69.97554,92.909148 41.30359,-33.14164 v 66.28403 z m -87.11749,-33.14164 41.30359,33.14164 -41.30359,33.14239 z"
+       id="path1-5"
+       style="fill:#d40000;fill-opacity:1;stroke-width:2.86719" />
+  </g>
+</svg>
