@@ -6,14 +6,13 @@ interface Project {
 }
 
 const projectsData: Project[] = [
-  // {
-  //   title: 'A Search Engine',
-  //   description: `What if you could look up any information in the world? Webpages, images, videos
-  //   and more. Google has many features to help you find exactly what you're looking
-  //   for.`,
-  //   imgSrc: '/static/images/google.png',
-  //   href: 'https://www.google.com',
-  // },
+  {
+    title: 'Sick Fits',
+    description:
+      '"Sick Fits" is a full-stack e-commerce example project built during the completion of Wes Bos\'s "Advanced React" course. It features a Next.js frontend utilizing Apollo Client for data fetching and caching, and Stripe for payment processing. The backend is built with Keystone JS to act as our auth handler, CMS, and GraphQL API to our MongoDB database.',
+    imgSrc: '/static/images/sick-fits/advanced-react-mocks-v2-cropped.jpg',
+    href: 'https://sickfits.devondaviau.com/',
+  },
   // {
   //   title: 'The Time Machine',
   //   description: `Imagine being able to travel back in time or to the future. Simple turn the knob

@@ -1,0 +1,198 @@
+---
+title: 🚀 Building & Deploying Wes Bos’s Advanced React App in 2025
+date: '2025-05-21'
+authors: ['default']
+tags:
+  [
+    'Next.js',
+    'React',
+    'Keystone',
+    'Stripe',
+    'GraphQL',
+    'Apollo',
+    'MongoDB Atlas',
+    'Cloudinary',
+    'Railway',
+    'NProgress',
+    'Full-Stack Development',
+    'Node.js',
+    'Web Development',
+    'Wes Bos',
+    'Advanced React',
+    'React Hooks',
+    'GraphQL API',
+    'Cloud Deployment',
+    'Personal Projects',
+    'Developer Experience',
+    'Portfolio Project',
+  ]
+draft: false
+layout: PostBanner
+images: ['/static/images/sick-fits/frontend-vs-code-v2.jpg']
+summary: What's Wes Bos's Advanced React course like? Is it still relevant? In this post I detail what I discovered in the process of taking this course and deploying it as an example project for my personal website.
+---
+
+I’ve had _Advanced React_ by Wes Bos on my to-do list for years. I finally made time to dive in this year, and I’m glad I did. In this post, I’m going to share what I built, how I deployed it, a few things I ran into along the way, and whether I think the course still holds up in 2025.
+
+---
+
+## TL:DR
+
+Wes Bos’s Advanced React course still holds up fairly well in 2025, though some patterns (like getInitialProps) feel dated. I deployed the project using Railway, splitting the frontend (Next.js + Apollo Client), backend (Keystone), and DB (MongoDB) into separate services. There were a few deployment hurdles, but I learned a lot ironing them out. If you're looking to sharpen your React, GraphQL, and full-stack deployment skills, it’s still a solid course. Just be prepared to modernize a few things if you want a production-ready build.
+
+---
+
+## 📦 What’s the Project?
+
+The course walks you through building a full-stack React app powered by Next.js, with a Keystone backend, MongoDB for the database, Cloudinary for image handling, and Apollo Client to fetch and cache our data. It's a stripped-down e-commerce platform, complete with authentication, permissions/roles, file uploads, and a decently snappy UI.
+
+I’ve taken a number of Wes Bos’s courses, both free and paid, and always enjoyed his teaching style. This one delivers the same approachable, well-paced experience.
+
+I originally bought this course in 2021 and made it most of the way through before work pulled me away. Come 2025, and I finally decided to put up a personal website and needed some example projects to show there.
+
+I wanted to be able to demonstrate my experience with Next JS and React, as well as GraphQL and maybe some stuff like state-management using context providers. I started building an example project from scratch which was coming along quite well, but I hit a wall when trying to figure out how to coordinate Apollo Client with Zustand—a popular state-management library—and whether or not it was necessary for my use case.
+
+I decided at that point that I'd like to learn how to better utilize Apollo Client and its cache. I figured this was a good excuse to go back and complete the Advanced React course. I'd be learning some of the things I was looking to learn, I'd have an app to deploy at the end of it, and I've enjoyed all of the courses Wes Bos has produced so far.
+
+Since Wes had revamped the course a while back to use some newer tools and React features, I decided to start the course over again instead of picking up where I had left off in 2021.
+
+---
+
+## 🛠️ The Stack
+
+Here’s what the project’s built with:
+
+- **Next.js**
+- **Apollo Client**
+- **Cloudinary**
+- **GraphQL**
+- **Keystone**
+- **MongoDB**
+- **Stripe**
+- **Railway** (for deploying both the front end and back end)
+
+---
+
+## 🚀 How I Deployed It
+
+### Setting Up the Services
+
+For hosting, I decided to use **Railway**. Here’s a quick breakdown of the setup I started with:
+
+- **MongoDB Atlas**: I still had a free-tier cluster set up from when I started the course before. I just needed to wake it up and grab the connection string.
+- **Cloudinary**: Again, I already had an account set up from before. I just needed to grab my API keys.
+- **Railway Projects**: I signed up and created a project with two separate services — one for the frontend and one for the backend.
+- **Deploying the Frontend**: Hooked it up to my GitHub repo and Railway handled the rest.
+- **Deploying the Backend**: Same deal.
+
+Since I already had the DB and image services set up, it was just a matter of grabbing credentials — no friction there.
+
+### Deploying with Railway
+
+Deploying the frontend and backend were a bit more of a challenge. The Advanced React course doesn't cover how to deploy our app(s) and a person with little or no experience trying to tackle this problem would likely find themselves very frustrated.
+
+The course code is available in Wes's GitHub account in one repo which includes the starter code, stepped solutions, and finished app.
+
+It's super helpful to not have to be grabbing code from disparate sources but doesn't necessarily make sense as a repo for deploying production apps from. This had occurred to me when I was originally forking the repo, but I figured I'd just figure it out later so I could jump in to the coursework.
+
+I had originally thought I'd deploy the app to Vercel which has been my go-to for Next.js apps since I started working with Next.js. But the frontend and backend are two separate apps—NextJS and Keystone. And the Keystone app (at least in the way we are using it in this course) has to run as a standalone server so a deployment solution built for serving static or SSR (server-side rendered) sites won't be suitable.
+
+When you purchase Wes Bos courses, you also get an invite to his Slack organization and added to the channels particular to each course. The most popular solution which was proposed there by a user for deployment was to break the front and backends into their own repos and deploy them separately (they recommended Heroku). I was being lazy and didn't want to create more repos. I had my Git history in my main repo already and I also kinda wanted to just keep everything under one roof as it were.
+
+Surely, in 2025, there has to be an easy way to deploy multiple apps from a single repo.
+
+For the past several years I've been working mostly on Next.js sites along with a bunch of Gatsby sites and even a few Astro sites. My go-to services have been Vercel and Netlify. I am pretty sure that these services can deploy from project subfolders, but they wouldn't do for Keystone since I wanted to be able to use its admin UI which required it running as a server. Thankfully, a friend of mine recommended [Railway](https://railway.com/). It is a platform that I was aware of but I hadn't yet had a chance to use. Railway isn't just a hosting provider, but is a service provider. They can deploy and host apps but they also can provide a whole list of other services including databases, containers, functions, storage volumes, etc. I'm sure I'm not doing them any justice here. My experience with them as of now is only cursory and probably just scratching the surface of their capabilities.
+
+Once I had signed up for Railway, I created a new project, added a deployment service, and hooked it up to my GitHub repo. I looked through the settings and discovered that I could indeed configure it to deploy from a subfolder. I later also discovered the "Watch Paths" setting which allows you to configure the service so that it will only build and deploy when there have been changes made to the files/folders that you specify. This way it won't try to deploy whenever any change is pushed to my "monorepo," only when changes have been made to the files for this service itself–pretty nifty.
+
+Once it was all wired up, I hit "Deploy" and crossed my fingers. It failed, of course. I checked my environment variables, and made sure I was specifying the version of Node.js that I needed correctly (Railway can pick this up in a number of different ways including `.nvmrc` files and the `engines.node` property in the `package.json` file), but it wouldn't go. This all did get sorted out, of course. We'll talk more about this in a little bit.
+
+### Database Migration
+
+After I had wrapped up most of the deployment stage of this project, I did some work for a friend who has a WordPress site and needed to migrate their hosting. I decided to give Railway a try for this and I was so pleased with how easy it was to get up and running that I went ahead and moved my Sick Fits MongoDB data over to Railway as well.
+
+Creating the MongoDB service was a breeze, as was hooking up the private networking. I migrated my collections, and BOOM, done.
+
+---
+
+## ⚠️ Gotchas & Challenges
+
+### Build Failures on Railway
+
+My first challenge was getting both the frontend and backend to build. By default, Railway uses [Nixpacks](https://nixpacks.com/docs) and for whatever reason the builds on both service deployments were failing. I say "for whatever reason" because instead of trying to debug the issue (which would probably lead me down the versioning nightmare hole), I first tried switching to [Railpack](https://railpack.com/) which is currently in beta. Once I switched over to Railpack, the builds succeeded. I assume the original problem stemmed from the old versions of Node and other packages that this project is running.
+
+I was pleased that everything had gone so smoothly up to this point. I opened a new browser tab, loaded up the frontend, and _voila_, there it was–my working example project. I closed my browser and started writing this blog post.
+
+### Apollo Client Hitting Wrong Endpoint
+
+But later that day I went back to check out the frontend again and it wouldn't load. I checked the network tab in the browser's dev tools and saw only one request going out for the home page which is what I should have seen at that point. But in Railway I could see that there were many requests going to the route `/api/graphql` returning 404s. When trying to render the page on the server, Apollo was trying to hit a nonexistent API endpoint on the frontend deployment instead of the endpoint for our backend service deployment.
+
+My environment variables were set up correctly. I couldn't understand exactly why the app wouldn't be using the proper endpoint. For testing, I even hardcoded the endpoint in to the Apollo configuration and that didn't work.
+
+I was starting to feel a bit crazy at this point and for a quick sanity check, I created a dummy `/api/graphql` endpoint which returned a 200 response and a `console.log` just to make sure that what was actually happening was what I thought was happening. Once this deployed, the frontend loaded immediately. There was a call to my dummy endpoint, then the app would call the correct endpoint. At this point, I could very well have just left it at that, called it "good enough" and moved on. But I'm not that kind of guy, and I took the opportunity to go a bit further and learn something.
+
+### getInitialProps and Modernizing the App (Or Not)
+
+`getInitialProps` is implemented in `_app.js` which means that every page in the app will SSR on first load. Since the "Advanced React" course was produced, this pattern has been abandoned in favour of configuring SSR on individual pages where needed by using `getServerSideProps`, server components, or partial prerendering. Other than causing all of the pages to SSR by default in the app, `getInitialProps` was being used to pass the `query` prop to our page components so we could access IDs and other data which would be used for querying our database.
+
+I started to try and "modernize" the app a bit on a new branch by removing `getInitialProps` from `_app.js` and using the `useRouter` hook on the frontend to get our `query` prop. But I abandoned this effort when I realized that I didn't want to also rejig how Apollo was configured and potentially attempt to update some packages in the process. I wanted to try and get the original code to run, even though it is outdated. If I want to start updating it I can try and overhaul the whole thing later to use the latest Next.js features, etc. as a project of its own.
+
+In the process of going through the Apollo docs, the Next.js docs, and the Railway docs, I learned quite a bit about how different parts of all three work. Importantly, I learned that when using Apollo with SSR (at least with the way this app is configured), it will fetch data on the server on first page load, then will fetch from the frontend on subsequent page loads. I also learned about Railway's private networking. The solution I ended up settling on was to configure a new environment variable to hold the private networking URL of my backend service and have it swap with another URL (`/api/graphql`) depending on the execution context(server or client).
+
+All calls to the backend from the client are proxied through a Next.js API endpoint. All of the requests to the backend are done server-side utilizing Railway's private networking. This way, all of my calls to the backend are kept in one basket, we can keep our endpoint URLs private (if we needed that), and we are at least avoiding some data egress fees for the requests sent server-side over private networking.
+
+I kept all of the legacy code intact otherwise, and this solution ended up working.
+
+I assume it has something to do with when and how env vars and URLs are evaluated at build and execution times. I was using the backend's public URL: perhaps Railway avoided calling it from the server because it was a public URL for a service in the same project, or perhaps it was because the URL was using `https`.
+
+---
+
+## 🧠 What I Learned
+
+Even though I’ve been working with React for a while, this course helped reinforce some full-stack concepts I hadn’t touched in a bit:
+
+- **Apollo Client caching strategies** and local state management.
+- **GraphQL query/mutation patterns** and how they differ from REST.
+- Deploying both ends of a full-stack app in the cloud, with a **managed database connection**.
+- **Next.js SSR**: This was a bit of a refresher on SSR in Next as well as how Apollo Client can be set up to work along with it.
+- **Railway**: I learned that Railway is a great platform with a slick interface. I also had a chance to dive into their docs a bit and learn some basics about their nomenclature and projects structure as well as their private networking, and services offered.
+
+---
+
+## 📈 Is This Course Still Worth It in 2025?
+
+Overall, working through this course in 2025 felt worthwhile. While some patterns (like `getInitialProps`) are dated, the experience of deploying a full-stack app and troubleshooting real-world deployment challenges was invaluable. I’ve also come away with a better understanding of Apollo Client caching and monorepo deployment strategies.
+
+If you’re newer to GraphQL, this is an excellent hands-on way to get real-world practice. The concepts still hold up today, and Wes’s teaching style is clear, approachable, and paced really well.
+
+Most of the code and concepts Wes goes over in the course are still valuable and current.
+
+I found the content covering Apollo Client's caching strategies particularly useful. The version of `@apollo/client` used in this project is the current major version as of this writing, so I assume all of that code is still up-to-date.
+
+The final section of the course covers testing using Jest and React Testing Library. I'm really interested in learning and doing more with testing, perhaps even trying out some test-driven development.
+
+The most out-of-date part of this course is the version of Next.js being used. Lots has happened in the world of Next.js since version 10, particularly in the latest version 15. Now we have partial rerendering, server components, server actions, and more.
+
+Would I still recommend _Advanced React_ in 2025? Yes — but with the caveat that some parts could benefit from modernization, and deploying the final app will take some extra legwork.
+
+If Wes were to produce a new, updated Next.js course, I would probably be purchasing that as well.
+
+For me, it was worth it to go back and restart the course. I had already paid for it, for one. And I knew going into it which parts would be the most useful to me and was aware that some of it was out of date. I got out of it what I was looking to get out of it.
+
+---
+
+## 🎯 What’s Next?
+
+Now that I’ve wrapped this up, I’m itching to build my own full-stack side project from scratch — I really want to get familiar with the latest Next.js hotness, and I'm super interested in tRPC. I’ll probably write about that too when it happens.
+
+If you’re on the fence about taking _Advanced React_, or curious about deploying to Railway, feel free to hit me up at [hello@devondaviau.com](mailto:hello@devondaviau.com).
+
+---
+
+## 👋 Wrapping Up
+
+All in all, I’m glad I revisited this course. Not only did I polish up some skills and deploy a working full-stack app, but I also got a chance to test out Railway and troubleshoot some tricky deployment issues. It reminded me that even “finished” tutorials are opportunities for learning when you add modern tools and your own goals into the mix.
+
+Thanks for reading — hope this gave you a bit of insight into what it’s like to tackle _Advanced React_ in 2025 and what deploying a full-stack app with Railway is like. If you’re working on a similar project, I’d love to hear about it.
+
+If you'd like to check out this project for yourself, the [finished app is here](https://sickfits.devondaviau.com), and [my repo on GitHub is here](https://github.com/devolasvegas/Advanced-React).
