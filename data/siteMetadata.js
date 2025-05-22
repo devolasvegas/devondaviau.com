@@ -11,7 +11,7 @@ const siteMetadata = {
   siteLogo: `${process.env.BASE_PATH || ''}/static/images/logo.png`,
   socialBanner: `${process.env.BASE_PATH || ''}/static/images/twitter-card.png`,
   mastodon: 'https://mastodon.social/@mastodonuser',
-  email: 'devon@devondaviau.com',
+  email: 'hello@devondaviau.com',
   github: 'https://github.com/devolasvegas',
   x: 'https://x.com/devondaviau',
   // twitter: 'https://twitter.com/Twitter',
