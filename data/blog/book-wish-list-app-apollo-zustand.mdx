@@ -1,0 +1,47 @@
+---
+title: Simple Book Wish List App with Apollo and Zustand
+date: '2025-10-21'
+authors: ['default']
+tags:
+  [
+    'Next.js',
+    'React',
+    'Zustand',
+    'GraphQL',
+    'Apollo',
+    'MongoDB Atlas',
+    'Railway',
+    'Full-Stack Development',
+    'Node.js',
+    'Web Development',
+    'GraphQL API',
+    'Cloud Deployment',
+    'Personal Projects',
+    'Developer Experience',
+    'Portfolio Project',
+  ]
+draft: false
+layout: PostBanner
+images: ['/static/images/sick-fits/frontend-vs-code-v2.jpg']
+summary:
+---
+
+# Simple Book Wishlist with Apollo and Zustand
+
+A little while back, I was looking for jobs and I came across one which required experience using GraphQL and React, along with Zustand for state management. From the sounds of it, the employer was using Zustand in a basic React app. I decided that I'd take a crack at putting together an example project which I could show to them should I decide to apply for a position with their organization. Regardless of the outcome, I'd at least get a bit of experience with Zustand, which is a popular library.
+
+I started a basic React app using `create-react-app`, and set about structuring my app, creating some queries, etc. I originally set up a PostgresQL database on a service platform which comes with a GraphQL API and queried for my data by passing my GraphQL queries along in my `fetch()` requests. Pretty bare-bones and effective.
+
+If I don't need Zustand, then how do we use Apollo client without exposing our admin secret?
+
+I want to use Zustand anyway.
+
+- What would be the alternatives if I didn't?
+  - Set up proxy API endpoint?
+  - Set up Apollo Server?
+
+I ended up setting the `fetchPolicy` option to `"no-cache"` in the `getBooks` function in `actions.ts`. This way the data on the home page is always pulled from the database then used to set state in Zustand. This way the single source of truth is always the database.
+
+At this point, Zustand is used to handle the list of books. When the landing page loads, the database is called and the Zustand book list is set each time with fresh data. If a new book is added through the interface, the Zustand book list is also updated with the new book. If a book is deleted through the interface, the Zustand book list is also updated.
+
+If the details of a book are updated, however, state local to the `<BookCard />` component is used instead.
