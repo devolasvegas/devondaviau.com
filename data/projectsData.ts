@@ -13,14 +13,12 @@ const projectsData: Project[] = [
     imgSrc: '/static/images/sick-fits/advanced-react-mocks-v2-cropped.jpg',
     href: 'https://sickfits.devondaviau.com/',
   },
-  // {
-  //   title: 'The Time Machine',
-  //   description: `Imagine being able to travel back in time or to the future. Simple turn the knob
-  //   to the desired date and press "Go". No more worrying about lost keys or
-  //   forgotten headphones with this simple yet affordable solution.`,
-  //   imgSrc: '/static/images/time-machine.jpg',
-  //   href: '/blog/the-time-machine',
-  // },
+  {
+    title: 'Story Shelf',
+    description: `Story Shelf is a basic CRUD app built with Next.js, TypeScript, Tailwind CSS, Hasura, and Zustand. It provides a simple, pleasing interface for managing your favourite books and keeping track of which ones you've read and which ones you want to read.`,
+    imgSrc: '/static/images/story-shelf/story-shelf-logo.svg',
+    href: 'https://storyshelf.devondaviau.com/',
+  },
 ]
 
 export default projectsData

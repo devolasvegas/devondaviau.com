@@ -9,7 +9,8 @@ tags:
     'Zustand',
     'GraphQL',
     'Apollo',
-    'MongoDB Atlas',
+    'Hasura',
+    'Supabase',
     'Railway',
     'Full-Stack Development',
     'Node.js',
@@ -20,7 +21,7 @@ tags:
     'Developer Experience',
     'Portfolio Project',
   ]
-draft: false
+draft: true
 layout: PostBanner
 images: ['/static/images/sick-fits/frontend-vs-code-v2.jpg']
 summary:
@@ -30,7 +31,23 @@ summary:
 
 A little while back, I was looking for jobs and I came across one which required experience using GraphQL and React, along with Zustand for state management. From the sounds of it, the employer was using Zustand in a basic React app. I decided that I'd take a crack at putting together an example project which I could show to them should I decide to apply for a position with their organization. Regardless of the outcome, I'd at least get a bit of experience with Zustand, which is a popular library.
 
-I started a basic React app using `create-react-app`, and set about structuring my app, creating some queries, etc. I originally set up a PostgresQL database on a service platform which comes with a GraphQL API and queried for my data by passing my GraphQL queries along in my `fetch()` requests. Pretty bare-bones and effective.
+I started a basic React app using `create-react-app`, and set about structuring the project, creating some queries, etc. I originally set up a PostgresQL database on Supabase, which comes with a GraphQL API and queried for my data by passing my GraphQL queries along in `fetch()` requests. Pretty bare-bones but effective.
+
+At this point, I decided to change the makeup of the project significantly. I wasn't used to working on barebones React applications and it seemed like more work than was necessary. Why wouldn't you use a React framework when working with React? Even the folks at React recommend using a framework. I assume that the company I was thinking about applying to had a good reason for not using a framework – perhaps it was a legacy site which had had some enhancements as time went on, or perhaps their dev team found some other advantage to working without a front-end framework.
+
+I let my laziness get the best of me and I set up a new Next.js project. And instead of simply passing my queries with basic `fetch()` requests, I would use Apollo Client. I had worked with Apollo Client before and had recently completed a front-end tutorial course which utilized Apollo Client. Because of this I am also fairly familiar with Apollo Client's caching and state management.
+
+This, as far as I could tell, would make using Zustand redundant. Apollo could handle the data fetching as well as handling state on the front end. But I decided I wanted to gain some experience with Zustand anyway even though its use in the project would be contrived.
+
+I also moved my data away from Supabase in favour of using Hasura. Supabase's limits for their free plan were a bit to constraining for what I needed. After a day or two of inactivity, the database instance would automatically shut down and my app would break. I was also having difficulty setting Apollo up for SSR to work with Supabase.
+
+I found their documentation around this particular configuration a bit confusing. It seemed as though there was a big chunk of initial setup which was missing from the docs, or was perhaps just assumed that developers would know how to take care of it.
+
+I also wanted to keep auth for the database as simple as possible and only wanted to use the Hasura Admin Secret for database access. This posed another problem as I didn't want to expose this secret on the frontend. Apollo would need to be set up to be used server-side instead of client-side as it is mostly used for.
+
+I ended up using Apollo Client on the server only by using Next.js server actions, and setting the `fetchPolicy` in the action which grabs our list of books to `no-cache`. This means that whenever the app is loaded, it will grab fresh data from the database.
+
+There are a few ways to do this: Apollo Server could be set up in conjunction with Apollo Client and would do the job of relaying the data to the front-end and keeping our secrets safe; we could also set up an authentication provider to manage permissions to our database instead of using our admin secret; these two strategies could be used together; we could also opt to use Apollo on the front-end and create a layer in our app such as an API route to proxy our requests to the database.
 
 If I don't need Zustand, then how do we use Apollo client without exposing our admin secret?
 
