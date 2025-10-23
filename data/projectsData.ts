@@ -16,7 +16,7 @@ const projectsData: Project[] = [
   {
     title: 'Story Shelf',
     description: `Story Shelf is a basic CRUD app built with Next.js, TypeScript, Tailwind CSS, Hasura, and Zustand. It provides a simple, pleasing interface for managing your favourite books and keeping track of which ones you've read and which ones you want to read.`,
-    imgSrc: '/static/images/story-shelf/story-shelf-logo.svg',
+    imgSrc: '/static/images/story-shelf/story-shelf.png',
     href: 'https://storyshelf.devondaviau.com/',
   },
 ]
