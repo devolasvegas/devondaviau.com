@@ -1,0 +1,137 @@
+---
+title: Smarter Caching with Next.js and Storyblok
+date: '2025-03-09'
+authors: ['default']
+tags: ['Next.js', 'Storyblok', 'Netlify', 'Caching', 'Full-Stack Development', 'CMS']
+draft: false
+layout: PostBanner
+images: ['/static/images/nextjs-storyblok/storyblok-nextjs.jpg']
+summary: How I stopped hitting the Storyblok API on every page load — and set things up so content updates go live instantly without a rebuild.
+---
+
+I have been working on a project template using Next.js and Storyblok as the CMS, deployed on Netlify. The site worked, pages loaded, everything was fine. But when I looked closer at what was actually happening on each request, I realised the setup was pretty inefficient: every single page load was making a fresh request to the Storyblok API. No caching, no reuse. Just a round trip to Storyblok every time someone visited a page.
+For a low-traffic personal site it wasn't going to cause real problems, but it definitely wouldn't scale well, and I knew it could be much better. Why fetch fresh data on every load? I wanted to fix it, and that meant deciding between two approaches: static site generation (SSG) or the Next.js Data Cache with on-demand revalidation.
+
+## SSG vs. On-Demand revalidation
+
+My first thought was the obvious fix for "too many API calls" in a Next.js site is SSG — use `generateStaticParams()` to pre-render all your pages at build time, and serve them as static files. Zero API calls at runtime. But SSG comes with its own tradeoffs:
+
+- Content changes don't go live until the site is rebuilt
+- Every content update in Storyblok needs to trigger a rebuild on Netlify, whether full or partial using [ISR (Incremental Static Regeneration)](https://nextjs.org/docs/app/guides/incremental-static-regeneration)
+- Full build times grow as the number of pages grows
+- You're burning build minutes on content changes that have nothing to do with your code
+
+For a site where content changes are infrequent and build times are short, SSG is perfectly reasonable. But I wanted something more flexible — a setup where I could update content in Storyblok and have it go live within seconds, without triggering a rebuild at all.
+That's exactly what the Next.js Data Cache with on-demand revalidation is designed for. The idea: fetch content from Storyblok once, cache the response indefinitely, and only re-fetch when something actually changes — triggered by a webhook from Storyblok the moment content is published.
+
+## The Architecture
+
+The route structure stays the same — a dynamic catch-all `[[...slug]]` route that handles all pages. The difference is purely in how the fetch calls are configured and what happens when content changes. Here's the flow:
+
+- First visit to a page: Next.js fetches content from Storyblok and caches the response in its Data Cache
+- All subsequent visits: response served from cache, zero requests to Storyblok
+- Content published in Storyblok: webhook fires to a route handler on the Next.js site
+- Route handler calls `revalidateTag()` to clear the cache for that specific page
+- Next visit to that page: fresh fetch from Storyblok, cached again
+
+The dynamic route stays dynamic — Next.js still renders the page on each request — but the fetch call is served from cache rather than hitting Storyblok every time. No rebuild, no waiting, changes are live on the next page request after the webhook fires.
+
+### Getting the Fetch Calls Right
+
+The most important piece — and the one I initially got wrong — is how you fetch your data. Initially I had the project set up to use the Storyblok SDK to do our content fetching. In order to take advantage of the Data Cache in Next.js, I would need to use `fetch()`. It is possible to configure a custom `fetch()` function in the Storyblok SDK configuration, but I chose instead to use `fetch()` on its own, and use the SB SDK only for registering and rendering our components.
+
+Next.js has modified `fetch()` with their own extra configuration options to allow streamlined configuration of Next.js's different caching mechanisms. Because I am using dynamic routing, I can leverage the [Next.js Data Cache](https://nextjs.org/docs/app/guides/caching#data-cache), which persists the result of data fetches across incoming server requests and deployments.
+
+In Next.js 15, the default fetch behaviour changed to `no-store`, meaning nothing is cached unless you explicitly opt in. On top of the options added in the `next` property to the `fetch()` prototype in Next.js, the `cache` property now controls the Next.js caching behaviour on the server. In this case, I added two things to the `fetch()` calls which get our Storyblok data: `cache: "force-cache"` tells Next.js to use the Data Cache, and `next: { tags: [] }` to label our data for later invalidation.
+
+Here's what the `fetch()` call in my page component looks like:
+
+```
+async function getStory(slug) {
+  const res = await fetch(
+    `https://api.storyblok.com/v2/cdn/stories/${slug}?token=${process.env.STORYBLOK_TOKEN}&version=published`,
+    {
+      cache: 'force-cache',
+      next: {
+        tags: ['storyblok', `storyblok:${slug}`],
+      },
+    },
+  );
+
+  if (!res.ok) return null;
+  const data = await res.json();
+  return data.story;
+}
+```
+
+I tag every fetch with two tags: a blanket `storyblok` tag for full cache wipes, and a slug-specific tag like `storyblok:blog/my-post` for surgical per-page invalidation. This gives me flexibility in the webhook handler — I can bust just one page, or everything, depending on what changed.
+Using the slug rather than the story's numeric ID works well here because the Storyblok webhook payload includes `full_slug` directly, so I don't need to do any extra lookups.
+
+### The Webhook Route Handler
+
+When content is published in Storyblok, it sends a POST request to a URL I specify — in my case, `/api/revalidate`. The route handler does two things: extract the slug from the payload and ensure we can construct a `cacheTag`, and call `revalidateTag()`.
+If you are on a paid plan, Storyblok can include a webhook-signature header with every request, which can be used to [validate the request](https://www.storyblok.com/tp/webhook-secret-with-different-technologies) in order to guard against malicious requests to your route handler.
+
+```
+import { revalidateTag } from "next/cache";
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const fullSlug = body.full_slug;
+  const cacheTag: string | null = fullSlug ? `storyblok:${fullSlug}` : null;
+
+  console.log(`Received revalidation request for cacheTag: ${cacheTag}`);
+
+  if (cacheTag) {
+    try {
+      revalidateTag(cacheTag, "max");
+
+      console.log(
+        `Successfully triggered revalidation for cacheTag: ${cacheTag}`,
+      );
+
+      return new Response("Revalidation triggered", { status: 200 });
+    } catch (error) {
+      console.error("Error triggering revalidation:", error);
+      return new Response("Failed to trigger revalidation", { status: 500 });
+    }
+  } else {
+    console.warn("Missing valid cacheTag or slug in request body");
+    return new Response("Missing valid cacheTag or slug in request body", {
+      status: 400,
+    });
+  }
+}
+```
+
+## Things That Tripped Me Up
+
+### `force-cache` Isn't the Default Anymore
+
+I had read an article from mid-last year (2025) about configuring caching and followed the code examples and assumptions from it. And part of me assumed that Next.js would cache my fetch calls since I had configured cache tags in the `next` options object. In Next.js 13 and 14, `force-cache` was the default. In Next.js 15, that changed, and the default is now `no-store`. Without explicitly adding `cache: 'force-cache'`, every page load was hitting Storyblok fresh, even in production.
+
+This was the one big issue for me with getting this strategy to work. Without this configuration, the Data Cache wasn't being created. Because the few code examples I found were created using Next.js 14, and because I was making assumptions of my own, I kept missing the detail that would make it work. What I should have done is gone to the Next.js docs to research its caching capabilities and its custom `fetch()` implementation.
+
+### The Data Cache Doesn't Persist in Dev Mode
+
+In dev mode, Next.js does cache data for HMR, but not for full reloads. So even after correctly configuring my `fetch()` calls, I was still seeing requests being made to Storyblok. The caching behaviour only kicks in properly with a production build (`next build && next start`).
+
+## The End Result
+
+Before this change, every page load made a request to Storyblok regardless of whether the content had changed in days or weeks. With the Data Cache in place:
+
+- First visit to a page: one request to Storyblok, response cached
+- All subsequent visits: zero requests to Storyblok
+- After publishing in Storyblok: webhook fires, `revalidateTag()` clears the cache for that page, next visitor gets fresh content with one new request
+- No rebuild required, no build minutes consumed, changes are live within seconds of publishing
+
+Compared to SSG, I get the same near-zero API call count at runtime, but without the rebuild overhead and without content being stuck stale until the next deployment. The dynamic route stays dynamic, which means new pages added in Storyblok just work without touching the code.
+It took more work to set up than I expected, because I got tripped up by one single detail in the configuration which had me scratching my head for a while. But once it's all wired together correctly, it runs quietly in the background and just works. That's the kind of infrastructure I like.
+
+## Caveat
+
+This strategy does a great job of minimizing requests to our CMS, as well as build minutes used in Netlify. However, when deploying to some platforms (such as Netlify), requests to server-rendered pages count as serverless function invocations. In Netlify's Legacy billing plans, function invocations are their own billing metric; in their new credit-based billing, they fall under "compute" usage.
+
+For a small site without much web traffic, this shouldn't be a problem. Even a free Legacy plan on Netlify allows for up to 125,000 function invocations per billing cycle. But if your account has one or more large projects which do receive lots of visitors, these function calls would add up pretty quickly.
+
+So-though I have learned a lot in the process of getting this set up about how Next.js caching works, and how Next.js works on Netlify, I have also learned that it's not the optimum configuration for this stack on Netlify (and, perhaps, Netlify isn't the optimum platform for Next.js). From what I have read, on-demand incremental static regeneration is the way to go. But, I'll know more once I start getting that set up and finding out the details of how to make it work with Storyblok and Netlify. I suppose that will be my next post. See you then!
