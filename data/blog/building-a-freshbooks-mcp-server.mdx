@@ -1,0 +1,94 @@
+---
+title: Building a FreshBooks MCP Server (And Starting Over to Do It Right)
+date: '2026-03-31'
+authors: ['default']
+tags: ['MCP', 'Claude Code', 'AI Agents', 'FreshBooks', 'TypeScript', 'OAuth2', 'API Integration']
+draft: false
+layout: PostBanner
+images: ['/static/images/nextjs-storyblok/storyblok-nextjs.jpg']
+summary: How I built a local MCP server to manage FreshBooks from Claude Code — and why scrapping my first attempt and splitting the work across two specialized agents made all the difference.
+---
+
+I've been experimenting with Claude Code's Model Context Protocol (MCP) to connect my own tools and APIs directly into my AI workflow. My latest project: a local MCP server that lets Claude manage my FreshBooks account — listing clients, pulling invoices, and eventually handling billing tasks without me ever leaving the chat window. Simple enough idea. Getting there, though, taught me something useful about how to work _with_ AI agents instead of just throwing tasks at them.
+
+## The Idea
+
+MCP servers let you expose custom tools that Claude can call directly during a conversation. Instead of copy-pasting data back and forth, you wire up your API once and Claude just... uses it. For a freelancer who deals with FreshBooks constantly, the appeal is obvious. A quick "show me all outstanding invoices" in the middle of a conversation is a lot nicer than opening a browser tab, logging in, and clicking around.
+
+The plan was straightforward: build a TypeScript MCP server with `stdio` transport (so Claude Code CLI can talk to it directly), authenticate via FreshBooks' OAuth2 flow, and start with two tools — `list_clients` and `list_invoices`.
+
+## Attempt One: The Solo Agent Approach
+
+My first pass at this used a custom MCP Server Builder subagent created using Claude Code's `/agents` command. I gave it the task, let it scaffold the project, and it did a solid job on the structure: clean tool registration, proper stdio transport setup, good error handling patterns. The bones were right.
+
+The problem was the FreshBooks side. The MCP builder agent is great at MCP — it doesn't have deep knowledge of every API it might connect to. So I ended up doing a lot of manual back-and-forth, looking up FreshBooks API docs myself, translating the parameter names, and debugging why things weren't quite working. The OAuth2 token refresh wasn't persisting correctly across restarts. The invoice status filter was silently returning wrong results. It was functional-ish, but it felt like I was doing more of the integration work than I wanted to.
+
+## Starting Over (And Why That Was the Right Call)
+
+Pretty quickly I realized that this could be approached in a more effective manner: what if I built a FreshBooks-specific agent that knew the API deeply, and used it _alongside_ the MCP builder agent?
+
+So I deleted the whole project and started fresh.
+
+The new approach used a clear delegation pattern:
+
+1. **Ask the FreshBooks API agent** for the endpoint details — method, URL, required params, response shape, error codes.
+2. **Hand that spec to the MCP Server Builder agent** to implement the MCP tool with the right input schema and error handling.
+3. Verify the result against both before moving on.
+
+The difference was immediately noticeable. Instead of guessing at field names or consulting docs manually, the FreshBooks agent knew that invoice status is stored in `v3_status`, not just `status`. That kind of knowledge changes the shape of the implementation significantly — and without it, you end up with subtly broken behavior that's annoying to track down.
+
+## What Got Built
+
+The resulting server is small but solid. The entry point initializes the MCP server, registers the tools, and sets up `stdio` transport — about 28 lines total. The interesting stuff lives in the tools and the OAuth2 client.
+
+**OAuth2** was the trickiest part. FreshBooks uses a standard flow, but making it robust required a few layers:
+
+- Credentials in `.env` for initial setup, but refreshed tokens are persisted to `tokens.json` so they survive server restarts without you needing to re-authorize.
+- Automatic token refresh on 401 responses, transparent to the tool implementations.
+- A concurrency guard to ensure two simultaneous API calls don't each try to refresh the token at the same time, creating a race condition.
+- An `authorize.ts` script that walks through the OAuth2 flow — opens the authorization URL, accepts a manually pasted callback URL, exchanges it for tokens, and saves everything to disk. (The original version used a localhost redirect listener, but that added unnecessary complexity for a local tool.)
+
+**`list_clients`** does what it says: returns clients with filtering by email, organization name, and visibility state (active, archived, or deleted). Straightforward once the auth infrastructure was solid.
+
+**`list_invoices`** was more interesting. The Freshbooks subagent says that FreshBooks API's status filter is unreliable, so filtering by status (draft, sent, outstanding, overdue, paid, etc.) works by fetching _all_ invoices paginated at 100 per request and filtering client-side on the `v3_status` field. Not the most efficient approach for huge accounts, but it works for now. I suspect that properly formed query strings can do all of the heavy lifting, but I will figure this out as I iterate further on this project and build this knowledge into my custom subagent.
+
+## Knowledge Files
+
+Once I had something working, I put it through its paces — asked Claude to pull some client and invoice data, the kind of thing the tools are built for. Results came back, but they were off. Some fields were missing entirely. Others looked like the agent had just invented plausible-sounding field names rather than using the real ones from the API response. There was also the status filtering issue: the FreshBooks agent had flagged the API's status filter as unreliable, which is why we ended up with the client-side workaround. But looking at the docs, the API filter _should_ work — which suggests the issue is in how the query is being constructed, not the API itself. I'll dig into that when I circle back to refine the invoices tool.
+
+This is the part that's easy to gloss over when talking about AI-assisted development: the agents aren't infallible. They can hallucinate field names, misread docs, or confidently apply a workaround that isn't actually necessary. You still have to review the output.
+
+The fix, interestingly, came from asking Claude how to fix it. I described the problem — gaps and apparent errors in the subagent's knowledge — and asked for the best approach to correct it without just re-prompting from scratch every time. The suggestion was to create a supplementary knowledge file: a `freshbooks-api-knowledge.md` that I could populate with ground-truth data (real API response objects, correct field names, verified behavior) and reference directly in the subagent's configuration. The subagent would then load it at the start of every session, giving it a foundation of verified facts to work from.
+
+It's a clean pattern. I've added example client and invoice objects to the file so far, and I'll keep building it out as I find more gaps. Think of it less as a workaround and more as a feedback loop — every time the agent gets something wrong, the fix goes into the knowledge file so it can't make the same mistake twice.
+
+Whether it'll hold up in practice, I'll find out as I keep building. But it's a more durable solution than just hoping the agent gets it right next time.
+
+## What I Learned
+
+The biggest takeaway isn't really about MCP or FreshBooks. It's about how to use specialized AI agents well.
+
+The first attempt treated the MCP builder as a general-purpose implementation agent and tried to feed it everything. That worked okay structurally, but it meant I was the one bridging the gap between what the agent knew and what the API actually required.
+
+The second attempt was cleaner because the agents had clear, non-overlapping responsibilities. The FreshBooks agent knew the API. The MCP builder agent knew the protocol. I was the one directing the conversation between them, which is a much better use of everyone's time (including mine).
+
+There's also something to be said for being willing to delete work and restart. The first project wasn't wasted effort — it clarified exactly what was missing. The second version went faster and came out better because of it.
+
+## What's Next
+
+The two-tool version is working well as a foundation. From here, the natural next steps are:
+
+- Double-check some of the agents' work to see if it matches what the docs specify
+- Patch apparent gaps and errors in the subagent's knowledge in the supplementary knowledge file
+- `create_invoice` and `send_invoice` for actually generating and sending bills
+- `list_expenses` and `create_expense` for tracking spending
+- Time tracking and project management tools
+- Maybe some smarter query tools — "show me everything outstanding from this client" as a single natural-language-friendly operation
+
+The delegation pattern is already documented in a `CLAUDE.md` at the project root, so future work on this follows the same playbook automatically.
+
+If you're building your own MCP server for a specific API, I'd genuinely recommend considering the two-agent approach from the start. Spending time upfront to give each agent a clear lane pays off faster than you'd expect.
+
+---
+
+_The full project is a local tool, but the MCP server structure and OAuth2 patterns are pretty reusable if you're building something similar._
