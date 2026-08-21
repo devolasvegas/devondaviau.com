@@ -1,0 +1,63 @@
+---
+title: Building a News Feed Using a Four-Layer Architecture
+date: '2026-08-21'
+authors: ['default']
+tags:
+  [
+    'React',
+    'TypeScript',
+    Zustand,
+    System Design,
+    Claude Code,
+    Personal Projects,
+    Frontend Architecture,
+  ]
+draft: false
+layout: PostBanner
+images: ['/static/images/four-layer-news-feed.png']
+summary: My journey building a simple news feed app to explore a four-layer architecture which separates the view, data store, data access, and server layers.
+---
+
+I've read plenty of system design articles over the years, and they all suffer from the same problem: you nod along, the diagrams make sense, and then you sit down to actually build the thing and realize you understood none of it. So when I read GreatFrontEnd's [News Feed (e.g. Facebook)](https://www.greatfrontend.com/interviews/study/one-month/questions/system-design/news-feed-facebook) (paywall) writeup, I decided to stop reading and start building.
+
+The article lays out a four-layer architecture for a feed product — View, Store, Data Access, and Server — plus opinions on rendering strategy (CSR for a personalized, highly-interactive feed), navigation (SPA, so a shared client store makes feed-to-post-detail navigation feel instant), and pagination (cursor-based, to handle a feed that's reordering and inserting posts out from under you in real time). None of that is hard to _read_. Whether it's hard to _do_ is a different question, and the only way to find out was to do it.
+
+## The rules I set for myself
+
+I built this with [Claude Code](https://claude.com/claude-code) sitting next to me, but not writing the app for me. Early on I settled into a pattern that stuck for the whole project: we'd talk through a function or component's signature first — parameters, return shape, error handling, which layer owns which type — before I wrote a line of it. Then I'd write the implementation myself, and ask for a review. No "implement this for me." The point wasn't to ship a feed app fast; it was to make sure the architecture actually went through my hands.
+
+That constraint turned out to matter. A few of the best catches in this project came from _design_ conversations that happened before any code existed — the kind of thing that's easy to skip when you're pairing with an assistant that's happy to just write the file for you.
+
+## Layer by layer
+
+### Server: a fake backend with real rules
+
+`_server` is an in-memory mock database plus services (`feedService`, `postService`, `reactionService`) that do ranking, pagination, and validation exactly as if there were a real database behind them. It's the part of the stack I plan to eventually rip out and replace with something real, but building it first — with actual cursor logic, actual validation errors, actual DTOs — meant every layer above it had something honest to react to instead of a hand-wavy mock.
+
+### Data access: one rule that saved a real bug
+
+The convention I locked in here was simple: **each layer owns its own type definitions**, even when a shape is identical to the layer below it. `_data-access` doesn't import `_server`'s `Post` type; it defines its own. That felt slightly redundant while I was doing it. It stopped feeling redundant the first time it caught a real mismatch: `reaction.ts`'s `upsertReaction`/`deleteReaction` were typed as returning the same `{ post, author, media }` envelope as `post.ts`'s functions, by copy-paste analogy. But the actual reaction route returns a flat post object, no envelope. Because the type was locally defined instead of imported, the fix was contained to one file — and because we were checking it against the _actual route handler's response shape_ rather than trusting the sibling file's pattern, we caught it before it shipped instead of after something broke at runtime.
+
+### Store: zustand, and a race condition I didn't see coming
+
+For state management I went with zustand over hand-rolling something with `useSyncExternalStore` or Context + `useReducer` — no strong opinions here, just wanted something boring that got out of the way.
+
+The interesting part was optimistic updates. Reactions write to the store immediately (so the UI feels instant) and reconcile — or roll back — once the network request settles. The first version of this had a subtle lost-update race: if you tapped "love" and then quickly tapped "haha" before the first request resolved, whichever response landed _last_ would win, even if it was the stale one. The fix was a generation counter — `reactionRequestIdByPostId`, bumped on every real request, checked before applying both the success and the rollback. If the counter's moved on by the time a response comes back, that response is stale and gets silently dropped. It's a small amount of code, but it's the kind of bug that's invisible in a demo and only shows up in the moving-fast, unreliable-network conditions the article was gesturing at all along.
+
+The other thing worth mentioning: `useShallow` alone wasn't enough for the selectors that join `postIds` into full `{ post, author, media }` objects. Building that join _inside_ the zustand selector meant a fresh object/array on every call, so the shallow comparison never bailed out — every store change caused a re-render regardless of relevance. The fix was returning only reference-stable primitives and maps from the store selector, then doing the join in a `useMemo` outside of it. A one-line "use a shallow-compare hook" fix would've looked done and still re-rendered the whole feed on every keystroke in an unrelated part of the app.
+
+### View: where "it typechecks" stopped meaning "it works"
+
+This is the layer where a pattern kept recurring: bugs that pass `tsc --noEmit` cleanly and then break the second you look at the running app. A representative one — `feedLoadErrorById` is typed as `Record<string, string | null>`, so TypeScript happily tells you that indexing it always gives back a `string | null`. In practice, indexing with a key that hasn't been set yet returns `undefined`, not `null`. `error !== null` was `true` for that `undefined` case, so the "everything's fine" state rendered as an active error on first paint. The type system was telling the truth about the _declared_ shape and lying about the _runtime_ shape, and nothing short of actually looking at the rendered page caught it.
+
+The reaction picker (a toggle button plus a hover/focus-revealed menu of all six reaction types) turned up a similar flavor of bug, this time in event semantics rather than types. Closing the picker on blur seemed straightforward — until Tab-ing from the trigger button into the picker itself instantly closed the menu, because `blur` fires per-element (unlike `mouseleave`, which correctly ignores child-boundary crossings). Moving focus _within_ the same container fired blur on the old element and, without checking where focus was actually going, closed the whole thing. The fix is one line — check `relatedTarget` against the container before closing — but it's exactly the kind of interaction bug that's easy to miss if you only test with a mouse.
+
+Pagination was the last piece, and mostly validated a nice property of the earlier layers: the store's direction-aware merge logic (`"older"` appends, `"newer"` prepends, no direction replaces) and the `hasOlder`/`olderCursor` fields had existed, unused, since the store was built. Wiring up a "Load more" button needed one new selector and zero store changes — which felt like a small victory for having actually thought about pagination back when the store's shape was being designed, rather than bolting it on after the fact.
+
+## Where it stands
+
+All four layers are built and have been exercised with real complexity, not just happy-path scaffolding: optimistic updates with race-safe rollback, normalization and denormalization through the store, cursor-based pagination. That was the actual goal — not a finished product, but an honest run through the pattern the article described, with enough friction along the way (the race condition, the `relatedTarget` gotcha, the `Record`-indexing type lie) to prove I'd actually internalized it rather than just read about it.
+
+There's an obvious list of things still missing — a real backend instead of the in-memory mock, a post composer, a single-post detail page — and I'll probably come back for them. But none of those teach me anything new about the architecture; they're just more consumers of a pattern that's already proven out. Good problem to have.
+
+To view the code for this project, [check out the GitHub repo here](https://github.com/devolasvegas/news-feed). To see it in action, [check out the deployment on Railway here.](https://newsfeed.devondaviau.com/)
